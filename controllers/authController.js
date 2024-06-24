@@ -1,14 +1,35 @@
-import {StatusCodes} from 'http-status-codes';
-import User from '../models/UserModel.js'
+import { StatusCodes } from "http-status-codes";
+import User from "../models/UserModel.js";
+import bcrypt from "bcryptjs";
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js";
+import { UnauthenticatedError } from "../errors/customErrors.js";
+import { createJWT } from '../utils/tokenUtils.js';
 
 export const register = async (req, res) => {
-    const isFirstAccount = (await User.countDocuments()) === 0;
-    req.body.role = isFirstAccount ? 'admin' : 'user';
-    const user = await User.create(req.body)
-    console.log(user);
-    res.status(StatusCodes.CREATED).json({user})
-}
+    // check if user registered is the first user
+  const isFirstAccount = (await User.countDocuments()) === 0;
+  // if user registered is the first user, make user_role = 'admin' else user_role = 'user' 
+  req.body.role = isFirstAccount ? "admin" : "user";
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await hashPassword(req.body.password);
+  req.body.password = hashedPassword;
+
+  const user = await User.create(req.body);
+  res.status(StatusCodes.CREATED).json({ msg: "user created" });
+};
 
 export const login = async (req, res) => {
-    res.send('login')
-}
+    // check if user exists
+    const user  = await User.findOne({email: req.body.email})
+    if (!user) throw new UnauthenticatedError('invalid credentials')
+
+    // check if password is correct    
+    const isValidUser = user && (await comparePassword(req.body.password, user.password)) 
+    if(!isValidUser) throw new UnauthenticatedError('invalid credentials')
+    res.send("login route");
+
+    const token = createJWT({userId: user._id, role: user.role })
+    console.log(token);
+};
+
