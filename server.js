@@ -6,6 +6,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import mongoose from "mongoose";
 import cookieParser from "cookie-parser";
+import userRouter from './routes/userRouter.js'
 
 // routers
 import jobRouter from "./routes/jobRouter.js";
@@ -31,6 +32,8 @@ app.get("/", (req, res) => {
 app.use("/api/v1/jobs", authenticateUser, jobRouter);
 // auth router
 app.use("/api/v1/auth", authRouter);
+//user router
+app.use('/api/v1/users', authenticateUser, userRouter)
 
 app.use("*", (req, res) => {
   res.status(404).json({ msg: "not found" });
